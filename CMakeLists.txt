@@ -1,8 +1,6 @@
 # set up project
-project("dune-typetree" C CXX)
-
-# general stuff
-cmake_minimum_required(VERSION 3.1.0)
+cmake_minimum_required(VERSION 3.13)
+project(dune-typetree VERSION 2.8.0 LANGUAGES CXX)
 
 if(NOT (dune-common_DIR OR dune-common_ROOT OR
         "${CMAKE_PREFIX_PATH}" MATCHES ".*dune-common.*"))
