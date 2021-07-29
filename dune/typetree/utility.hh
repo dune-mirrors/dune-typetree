@@ -291,6 +291,7 @@ namespace Dune {
 
     //! No-op function to make calling a function on a variadic template argument pack legal C++.
     template<typename... Args>
+    [[deprecated]]
     void discard(Args&&... args)
     {}
 
@@ -334,9 +335,11 @@ namespace Dune {
      * it pass the index of the current tuple argument to the functor as a compile time constant
      * in addition to the tuple element itself.
      */
-    template<typename T, typename F, typename Policy>
-    void apply_to_tuple(T&& t, F&& f, Policy = apply_to_tuple_policy::default_policy())
-    {
+    template <typename T, typename F, typename Policy>
+    [[deprecated("This will be removed after 2.9. Use Hybrid::forEach "
+                 "achieve the same functionality")]] void
+    apply_to_tuple(T &&t, F &&f,
+                   Policy = apply_to_tuple_policy::default_policy()) {
       const std::size_t size = std::tuple_size<typename std::decay<T>::type>::value;
       _apply_to_tuple(
         std::forward<T>(t),

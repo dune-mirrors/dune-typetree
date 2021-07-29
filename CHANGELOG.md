@@ -1,6 +1,11 @@
 Changes
 =======
 
+TypeTree Unreleased
+----------------
+
+-   Deprecate `apply_to_tuple` utility.
+
 TypeTree 2.8-git
 ----------------
 -   Add support for tree transformations for `DynamicPowerNode`.
