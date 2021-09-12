@@ -1,4 +1,4 @@
-exclude_from_headercheck(
+dune_exclude_from_headercheck(
   typetreetargetnodes.hh
   typetreetestswitch.hh
   typetreetestutility.hh)
