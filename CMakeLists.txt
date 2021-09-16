@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.13)
-project("dune-typetree" C CXX)
+project("dune-typetree" CXX)
 
 if(NOT (dune-common_DIR OR dune-common_ROOT OR
         "${CMAKE_PREFIX_PATH}" MATCHES ".*dune-common.*"))
@@ -11,7 +11,7 @@ endif()
 find_package(dune-common REQUIRED)
 
 # start a dune project with information from dune.module
-dune_project(dunetypetree)
+dune_project(dune-typetree INTERFACE)
 
 add_subdirectory(doc)
 add_subdirectory(dune)
