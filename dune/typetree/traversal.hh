@@ -43,7 +43,7 @@ namespace Dune {
       // SFINAE template check that Tree has static (constexpr) function Tree::degree()
       template<class Tree>
       using StaticTraversalConcept = decltype((
-        std::integral_constant<std::size_t, Tree::degree()>{}
+        std::integral_constant<std::size_t, std::size_t(Tree::degree())>{}
       ));
 
 
@@ -182,7 +182,7 @@ namespace Dune {
             }
           } else if constexpr(allowStaticTraversal::value) {
             // Specialization for static traversal
-            auto indices = std::make_index_sequence<Tree::degree()>{};
+            auto indices = std::make_index_sequence<std::size_t(Tree::degree())>{};
             Hybrid::forEach(indices, [&](auto i) {
               auto childTreePath = Dune::TypeTree::push_back(treePath, i);
               forEachNode(tree.child(i), childTreePath, preFunc, leafFunc, postFunc);

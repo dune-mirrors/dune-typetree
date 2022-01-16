@@ -2,6 +2,7 @@ install(FILES
   accumulate_static.hh
   childextraction.hh
   compositenode.hh
+  datatree.hh
   dynamicpowernode.hh
   exceptions.hh
   filteredcompositenode.hh
@@ -16,14 +17,17 @@ install(FILES
   powernode.hh
   proxynode.hh
   simpletransformationdescriptors.hh
+  sizetree.hh
   transformation.hh
   transformationutilities.hh
+  transformtree.hh
   traversal.hh
   traversalutilities.hh
   treecontainer.hh
   treepath.hh
   typetraits.hh
   typetree.hh
+  typetrees.hh
   utility.hh
   visitor.hh
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/dune/typetree)
