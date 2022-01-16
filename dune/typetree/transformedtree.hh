@@ -1,8 +1,8 @@
 // -*- tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
 // vi: set et ts=4 sw=2 sts=2:
 
-#ifndef DUNE_TYPETREE_TRANSFORMTREE_HH
-#define DUNE_TYPETREE_TRANSFORMTREE_HH
+#ifndef DUNE_TYPETREE_TRANSFORMEDTREE_HH
+#define DUNE_TYPETREE_TRANSFORMEDTREE_HH
 
 #include <type_traits>
 #include <utility>
@@ -15,14 +15,14 @@ namespace TypeTree {
 
 //! Transformation of the nodes in a type-tree
 template<class Tree, class MapNode>
-auto transformTree(Tree const& tree, MapNode mapNode)
+auto transformedTree(Tree const& tree, MapNode mapNode)
 {
   if constexpr(Tree::isLeaf)
     return mapNode(tree);
   else {
     // not leaf
-    auto transformedTree = [&]{
-      auto subTree = [&](auto i) { return transformTree(tree[i], mapNode); };
+    auto transformedNode = [&]{
+      auto subTree = [&](auto i) { return transformedTree(tree[i], mapNode); };
       if constexpr(Tree::isTypeUniform) {
         using SubTree = decltype(subTree(index_constant<0>{}));
         if constexpr(Tree::isUniform) {
@@ -55,11 +55,11 @@ auto transformTree(Tree const& tree, MapNode mapNode)
       }
     };
 
-    return mapNode(transformedTree());
+    return mapNode(transformedNode());
   }
 }
 
 } // namespace TypeTree
-} //namespace Dune
+} // namespace Dune
 
-#endif // DUNE_TYPETREE_TRANSFORMTREE_HH
+#endif // DUNE_TYPETREE_TRANSFORMEDTREE_HH

@@ -8,7 +8,7 @@
 #include <utility>
 
 #include <dune/common/typetraits.hh>
-#include <dune/typetree/transformtree.hh>
+#include <dune/typetree/transformedtree.hh>
 
 namespace Dune {
 namespace TypeTree {
@@ -37,7 +37,7 @@ SizeNodeMixin(Node&& node)
 template<class Tree>
 auto makeSizeTree(const Tree& tree)
 {
-  return transformTree(tree, [](auto&& node)
+  return transformedTree(tree, [](auto&& node)
   {
     return SizeNodeMixin{std::forward<decltype(node)>(node)};
   });

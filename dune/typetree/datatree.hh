@@ -8,7 +8,7 @@
 #include <utility>
 
 #include <dune/common/typetraits.hh>
-#include <dune/typetree/transformtree.hh>
+#include <dune/typetree/transformedtree.hh>
 
 namespace Dune {
 namespace TypeTree {
@@ -60,7 +60,7 @@ template<class Data, class Tree,
   std::enable_if_t<std::is_default_constructible_v<Data>, int> = 0>
 auto makeDataTree(const Tree& tree)
 {
-  return transformTree(tree, [](auto&& node)
+  return transformedTree(tree, [](auto&& node)
   {
     return DataNodeMixin{std::forward<decltype(node)>(node), Data{}};
   });
@@ -70,7 +70,7 @@ auto makeDataTree(const Tree& tree)
 template<class Tree, class DataFactory>
 auto makeDataTree(const Tree& tree, const DataFactory& dataFactory)
 {
-  return transformTree(tree, [dataFactory](auto const& node)
+  return transformedTree(tree, [dataFactory](auto const& node)
   {
     return DataNodeMixin{node, dataFactory(node)};
   });

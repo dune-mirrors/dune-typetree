@@ -6,6 +6,7 @@ install(FILES
   dynamicpowernode.hh
   exceptions.hh
   filteredcompositenode.hh
+  filteredtree.hh
   filters.hh
   fixedcapacitystack.hh
   generictransformationdescriptors.hh
@@ -20,7 +21,7 @@ install(FILES
   sizetree.hh
   transformation.hh
   transformationutilities.hh
-  transformtree.hh
+  transformedtree.hh
   traversal.hh
   traversalutilities.hh
   treecontainer.hh
