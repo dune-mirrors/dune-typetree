@@ -11,7 +11,7 @@
 #include <dune/common/indices.hh>
 #include <dune/typetree/childextraction.hh>
 #include <dune/typetree/treepath.hh>
-#include <dune/typetree/transformtree.hh>
+#include <dune/typetree/transformedtree.hh>
 #include <dune/typetree/typetrees.hh>
 
 namespace Dune {
@@ -94,7 +94,7 @@ ContainerNodeMixin(Node&& node)
 template <class Tree, class LeafToValue>
 auto makeTreeContainer(Tree const& tree, LeafToValue leafToValue)
 {
-  return transformTree(tree, [leafToValue](auto&& node) {
+  return transformedTree(tree, [leafToValue](auto&& node) {
     using Node = std::decay_t<decltype(node)>;
     if constexpr(Node::isLeaf)
       return leafToValue(std::forward<decltype(node)>(node));
