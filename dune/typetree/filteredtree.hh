@@ -14,18 +14,6 @@ namespace Dune {
 namespace TypeTree {
 namespace Detail {
 
-  template<class F, std::size_t n>
-  constexpr auto unpackSeq(F&& f, index_constant<n>)
-  {
-    return Dune::unpackIntegerSequence(f, std::make_index_sequence<n>{});
-  }
-
-  template<std::size_t... ii>
-  constexpr auto sizeOfSeq(std::index_sequence<ii...>)
-  {
-    return index_constant<sizeof...(ii)>{};
-  }
-
   template<std::size_t... ii, std::size_t... jj>
   constexpr auto mergeSeq(std::index_sequence<ii...>, std::index_sequence<jj...>)
   {
