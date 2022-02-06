@@ -27,7 +27,7 @@ namespace TypeTree {
   {
     // for backwards compatibility
     inline static constexpr bool isPower = !isLeaf && isTypeUniform && !isUniform;
-    inline static constexpr bool isComposite = !isLeaf && !isTypeUniform && !isUniform && isStatic;
+    inline static constexpr bool isComposite = !isLeaf && !isTypeUniform && !isUniform && hasStaticSize;
   };
 
 
