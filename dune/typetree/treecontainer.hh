@@ -135,7 +135,8 @@ public:
     return value_;
   }
 
-  void resize(...) {}
+  template<class... Args>
+  void resize(Args&&...) {}
 
 private:
   Value value_;
