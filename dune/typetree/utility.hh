@@ -233,7 +233,7 @@ namespace Dune {
         typedef generic_compositenode_children_info<Node,k+1,n> NextChild;
 
         // extract child info
-        typedef typename Node::template Child<k>::Type Child;
+        typedef typename Node::template Child<k> Child;
         typedef NodeTag<Child> ChildTag;
         typedef TreeInfo<Child,ChildTag> ChildInfo;
 

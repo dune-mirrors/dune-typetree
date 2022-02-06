@@ -12,7 +12,7 @@
 #include <dune/typetree/childextraction.hh>
 #include <dune/typetree/treepath.hh>
 #include <dune/typetree/transformedtree.hh>
-#include <dune/typetree/typetrees.hh>
+#include <dune/typetree/nodes.hh>
 
 namespace Dune {
 namespace TypeTree {
@@ -50,6 +50,20 @@ public:
     : Node{std::forward<N>(node)}
   {}
 
+  template<class N = Node,
+    std::enable_if_t<std::is_default_constructible_v<N>, int> = 0>
+  explicit ContainerNodeMixin()
+    : Node{}
+  {}
+
+  template<class T,
+    std::enable_if_t<not std::is_same<T,Node>::value, int> = 0>
+  explicit ContainerNodeMixin(const T& tree)
+    : ContainerNodeMixin{}
+  {
+    resize(tree);
+  }
+
   //! Access the tree childs using a tree-path (const access)
   template<class... T>
   const auto& operator[](const TypeTree::HybridTreePath<T...>& path) const
@@ -63,12 +77,74 @@ public:
   {
     return TypeTree::child(static_cast<Node&>(*this), path);
   }
+
+  //! Resize the node or check for correct size
+  void resize(std::size_t size)
+  {
+    if constexpr(Node::hasStaticSize)
+      assert(Node::degree() == size);
+    else
+      Node::resize(size);
+  }
+
+  template<class Tree,
+    decltype((std::declval<Tree>().degree(), int{})) = 0>
+  void resize(const Tree& tree)
+  {
+    resize(tree.degree());
+  }
 };
 
 // deduction guide
 template<class Node>
 ContainerNodeMixin(Node&& node)
   -> ContainerNodeMixin<std::decay_t<Node>>;
+
+
+template<class Value>
+class LeafNodeContainer
+{
+public:
+  template<class V,
+    std::enable_if_t<Dune::IsInteroperable<V,Value>::value, int> = 0>
+  explicit LeafNodeContainer(V&& value)
+    : value_{std::forward<V>(value)}
+  {}
+
+  template<class V = Value,
+    std::enable_if_t<std::is_default_constructible_v<V>, int> = 0>
+  explicit LeafNodeContainer()
+    : value_{}
+  {}
+
+  template<class Tree,
+    std::enable_if_t<Tree::isLeaf, int> = 0>
+  explicit LeafNodeContainer(const Tree&)
+    : LeafNodeContainer{}
+  {}
+
+  //! Access the tree childs using a tree-path (const access)
+  const auto& operator[](const TypeTree::HybridTreePath<>& path) const
+  {
+    return value_;
+  }
+
+  //! Access the tree childs using a tree-path (mutable access)
+  auto& operator[](const TypeTree::HybridTreePath<>& path)
+  {
+    return value_;
+  }
+
+  void resize(...) {}
+
+private:
+  Value value_;
+};
+
+// deduction guide
+template<class Value>
+LeafNodeContainer(Value&& value)
+  -> LeafNodeContainer<std::decay_t<Value>>;
 
 
 /** \addtogroup TypeTree
@@ -94,13 +170,17 @@ ContainerNodeMixin(Node&& node)
 template <class Tree, class LeafToValue>
 auto makeTreeContainer(Tree const& tree, LeafToValue leafToValue)
 {
-  return transformedTree(tree, [leafToValue](auto&& node) {
-    using Node = std::decay_t<decltype(node)>;
-    if constexpr(Node::isLeaf)
-      return leafToValue(std::forward<decltype(node)>(node));
-    else
-      return ContainerNodeMixin<Node>{std::forward<decltype(node)>(node)};
-  });
+  if constexpr(Tree::isLeaf) {
+    using Value = std::decay_t<decltype(leafToValue(tree))>;
+    return LeafNodeContainer<Value>{leafToValue(tree)};
+  } else
+    return transformedTree(tree, [leafToValue](auto&& /*sourceNode*/, auto&& targetNode) {
+      using Node = std::decay_t<decltype(targetNode)>;
+      if constexpr(Node::isLeaf)
+        return leafToValue(std::forward<decltype(targetNode)>(targetNode));
+      else
+        return ContainerNodeMixin<Node>{std::forward<decltype(targetNode)>(targetNode)};
+    });
 }
 
 /**

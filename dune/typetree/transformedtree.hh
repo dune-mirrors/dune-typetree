@@ -8,41 +8,41 @@
 #include <utility>
 
 #include <dune/common/indices.hh>
-#include <dune/typetree/typetrees.hh>
+#include <dune/typetree/nodes.hh>
 
 namespace Dune {
 namespace TypeTree {
 
 //! Transformation of the nodes in a type-tree
-template<class Tree, class MapNode>
-auto transformedTree(Tree const& tree, MapNode mapNode)
+template<class SourceNode, class NodeMap>
+auto transformedTree(SourceNode const& sourceNode, NodeMap nodeMap)
 {
-  if constexpr(Tree::isLeaf)
-    return mapNode(tree);
+  if constexpr(SourceNode::isLeaf)
+    return nodeMap(sourceNode,sourceNode);
   else {
     // not leaf
-    auto transformedNode = [&]{
-      auto subTree = [&](auto i) { return transformedTree(tree[i], mapNode); };
-      if constexpr(Tree::isTypeUniform) {
-        using SubTree = decltype(subTree(index_constant<0>{}));
-        if constexpr(Tree::isUniform) {
-          if constexpr(Tree::isStatic)
-            return StaticUniformPowerNode{Tree::degree(), subTree(0)};
+    auto transformedNodeBase = [&]{
+      auto childNode = [&](auto i) { return transformedTree(sourceNode.child(i), nodeMap); };
+      if constexpr(SourceNode::isTypeUniform) {
+        using SubTree = decltype(childNode(index_constant<0>{}));
+        if constexpr(SourceNode::isUniform) {
+          if constexpr(SourceNode::hasStaticSize)
+            return StaticUniformPowerNode{SourceNode::degree(), childNode(0)};
           else
-            return DynamicUniformPowerNode{Tree::degree(), subTree(0)};
+            return DynamicUniformPowerNode{SourceNode::degree(), childNode(0)};
         }
         else {
           // not uniform
-          if constexpr(Tree::isStatic) {
+          if constexpr(SourceNode::hasStaticSize) {
             return Dune::unpackIntegerSequence(
-              [subTree](auto... ii) { return StaticPowerNode{subTree(ii)...}; },
-              std::make_index_sequence<std::size_t(Tree::degree())>{});
+              [childNode](auto... ii) { return StaticPowerNode{childNode(ii)...}; },
+              std::make_index_sequence<std::size_t(SourceNode::degree())>{});
           }
           else {
             DynamicPowerNode<SubTree> container;
-            container.reserve(tree.degree());
-            for (std::size_t i = 0; i < tree.degree(); ++i)
-              container.emplace_back(subTree(i));
+            container.reserve(sourceNode.degree());
+            for (std::size_t i = 0; i < sourceNode.degree(); ++i)
+              container.emplace_back(childNode(i));
             return container;
           }
         }
@@ -50,12 +50,12 @@ auto transformedTree(Tree const& tree, MapNode mapNode)
       else {
         // not type-uniform
         return Dune::unpackIntegerSequence(
-          [subTree](auto... ii) { return CompositeNode{subTree(ii)...}; },
-          std::make_index_sequence<std::size_t(Tree::degree())>());
+          [childNode](auto... ii) { return CompositeNode{childNode(ii)...}; },
+          std::make_index_sequence<std::size_t(SourceNode::degree())>());
       }
     };
 
-    return mapNode(transformedNode());
+    return nodeMap(sourceNode, transformedNodeBase());
   }
 }
 

@@ -8,7 +8,7 @@
 #include <utility>
 
 #include <dune/common/indices.hh>
-#include <dune/typetree/typetrees.hh>
+#include <dune/typetree/nodes.hh>
 
 namespace Dune {
 namespace TypeTree {
@@ -64,14 +64,14 @@ auto filteredTree(Tree const& tree, Predicate pred, Path path = {})
     auto subTree = [&](auto i) { return filteredTree(tree[i], pred, push_back(path,i)); };
     if constexpr(Tree::isUniform) {
       // uniform nodes cannot be filtered
-      if constexpr(Tree::isStatic)
+      if constexpr(Tree::hasStaticSize)
         return StaticUniformPowerNode{Tree::degree(), subTree(0)};
       else
         return DynamicUniformPowerNode{Tree::degree(), subTree(0)};
     }
     else {
       // not uniform
-      if constexpr(Tree::isStatic) {
+      if constexpr(Tree::hasStaticSize) {
         auto allIndices = std::make_index_sequence<std::size_t(Tree::degree())>{};
         auto filteredIndices = Dune::unpackIntegerSequence([&](auto... ii) {
           return Detail::filteredSeq(allIndices, pred(tree[ii], push_back(path,ii))...);

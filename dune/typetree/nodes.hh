@@ -16,15 +16,19 @@
 namespace Dune {
 namespace TypeTree {
 
-  template <bool b> struct IsLeaf        { inline static constexpr bool isLeaf = b; };
-  template <bool b> struct IsUniform     { inline static constexpr bool isUniform = b; };
-  template <bool b> struct IsTypeUniform { inline static constexpr bool isTypeUniform = b; };
-  template <bool b> struct HasStaticSize { inline static constexpr bool hasStaticSize = b; };
+  template <bool b> struct IsLeaf        { inline static constexpr bool value = b; };
+  template <bool b> struct IsUniform     { inline static constexpr bool value = b; };
+  template <bool b> struct IsTypeUniform { inline static constexpr bool value = b; };
+  template <bool b> struct HasStaticSize { inline static constexpr bool value = b; };
 
   template<class IsLeaf_, class IsUniform_, class IsTypeUniform_, class HasStaticSize_>
   struct TreeProperties
-      : IsLeaf_, IsUniform_, IsTypeUniform_, HasStaticSize_
   {
+    inline static constexpr bool isLeaf = IsLeaf_::value;
+    inline static constexpr bool isUniform = IsUniform_::value;
+    inline static constexpr bool isTypeUniform = IsTypeUniform_::value;
+    inline static constexpr bool hasStaticSize = HasStaticSize_::value;
+
     // for backwards compatibility
     inline static constexpr bool isPower = !isLeaf && isTypeUniform && !isUniform;
     inline static constexpr bool isComposite = !isLeaf && !isTypeUniform && !isUniform && hasStaticSize;
@@ -45,15 +49,15 @@ namespace TypeTree {
 
 
   //! Non-uniform type-tree with all sub-trees of different type
-  template<class... SubTrees>
+  template<class... Childs>
   struct CompositeNode
-      : public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<false>,HasStaticSize<true>>
-      , public Dune::TupleVector<SubTrees...>
+      : private Dune::TupleVector<Childs...>
+      , public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<false>,HasStaticSize<true>>
   {
-    using Super = Dune::TupleVector<SubTrees...>;
+    using Super = Dune::TupleVector<Childs...>;
 
     //! The type of the childs tuple
-    using ChildTypes = std::tuple<SubTrees...>;
+    using ChildTypes = std::tuple<Childs...>;
 
     //! The type of the i'th child
     template <std::size_t i>
@@ -66,7 +70,7 @@ namespace TypeTree {
     template<std::size_t I0, class... II>
     auto& child(index_constant<I0> i, II... ii)
     {
-      static_assert(I0 < sizeof...(SubTrees));
+      static_assert(I0 < sizeof...(Childs));
       if constexpr(sizeof...(II) > 0)
         return Super::operator[](i).child(ii...);
       else
@@ -77,7 +81,7 @@ namespace TypeTree {
     template<std::size_t I0, class... II>
     const auto& child(index_constant<I0> i, II... ii) const
     {
-      static_assert(I0 < sizeof...(SubTrees));
+      static_assert(I0 < sizeof...(Childs));
       if constexpr(sizeof...(II) > 0)
         return Super::operator[](i).child(ii...);
       else
@@ -85,25 +89,25 @@ namespace TypeTree {
     }
 
     //! Return the number of nodes
-    static constexpr index_constant<(sizeof...(SubTrees))> degree() { return {}; }
+    static constexpr index_constant<(sizeof...(Childs))> degree() { return {}; }
   };
 
   // deduction guides
-  template<class... SubTrees>
-  CompositeNode(const SubTrees&...)
-    -> CompositeNode<SubTrees...>;
+  template<class... Childs>
+  CompositeNode(const Childs&...)
+    -> CompositeNode<Childs...>;
 
 
   //! Non-uniform type-tree with all sub-trees of the same type and static size.
-  template<class SubTree, std::size_t n>
+  template<class Child, std::size_t n>
   struct StaticPowerNode
       : public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<true>,HasStaticSize<true>>
-      , public std::array<SubTree,n>
+      , public std::array<Child,n>
   {
-    using Super = std::array<SubTree, n>;
+    using Super = std::array<Child, n>;
 
     //! The type of the childs
-    using ChildType = SubTree;
+    using ChildType = Child;
 
     //! Explicit definition of default constructor
     StaticPowerNode()
@@ -111,17 +115,17 @@ namespace TypeTree {
     {}
 
     //! Forward all arguments to the array
-    template<class... SubTrees,
-      std::enable_if_t<(1+sizeof...(SubTrees) == n), int> = 0>
-    explicit StaticPowerNode(const SubTree& subTree, SubTrees&&... subTrees)
-      : Super{subTree, std::forward<SubTrees>(subTrees)...}
+    template<class... Childs,
+      std::enable_if_t<(1+sizeof...(Childs) == n), int> = 0>
+    explicit StaticPowerNode(const Child& child, Childs&&... childs)
+      : Super{child, std::forward<Childs>(childs)...}
     {}
 
     //! Repeat the single argument to fill the array
-    explicit StaticPowerNode(index_constant<n>, const SubTree& subTree)
+    explicit StaticPowerNode(index_constant<n>, const Child& child)
       : Super{Dune::unpackIntegerSequence(
           [&](auto... ii) {
-            return Super{(void(ii), subTree)...};
+            return Super{(void(ii), child)...};
           }, std::make_index_sequence<n>{})
         }
     {}
@@ -153,31 +157,31 @@ namespace TypeTree {
   };
 
   // deduction guides
-  template<std::size_t n, class SubTree>
-  StaticPowerNode(index_constant<n>, const SubTree&)
-    -> StaticPowerNode<SubTree, n>;
+  template<std::size_t n, class Child>
+  StaticPowerNode(index_constant<n>, const Child&)
+    -> StaticPowerNode<Child, n>;
 
-  template<class SubTree, class... SubTrees,
-    std::enable_if_t<not Dune::IsIntegralConstant<SubTree>::value, int> = 0,
-    std::enable_if_t<(std::is_convertible_v<SubTrees,SubTree> &&...), int> = 0>
-  StaticPowerNode(const SubTree&, const SubTrees&...)
-    -> StaticPowerNode<SubTree, 1+sizeof...(SubTrees)>;
+  template<class Child, class... Childs,
+    std::enable_if_t<not Dune::IsIntegralConstant<Child>::value, int> = 0,
+    std::enable_if_t<(std::is_convertible_v<Childs,Child> &&...), int> = 0>
+  StaticPowerNode(const Child&, const Childs&...)
+    -> StaticPowerNode<Child, 1+sizeof...(Childs)>;
 
   // alias for backwards compatibility
-  template<class SubTree, std::size_t n>
-  using PowerNode = StaticPowerNode<SubTree,n>;
+  template<class Child, std::size_t n>
+  using PowerNode = StaticPowerNode<Child,n>;
 
 
   //! Non-uniform type-tree with all sub-trees of the same type and dynamic size.
-  template<class SubTree>
+  template<class Child>
   struct DynamicPowerNode
       : public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<true>,HasStaticSize<false>>
-      , public std::vector<SubTree>
+      , public std::vector<Child>
   {
-    using Super = std::vector<SubTree>;
+    using Super = std::vector<Child>;
 
     //! The type of the childs
-    using ChildType = SubTree;
+    using ChildType = Child;
 
     //! Inherit the constructors from std::vector
     using Super::Super;
@@ -209,22 +213,22 @@ namespace TypeTree {
   };
 
   // deduction guides
-  template<class SubTree>
-  DynamicPowerNode(std::size_t, const SubTree&)
-    -> DynamicPowerNode<SubTree>;
+  template<class Child>
+  DynamicPowerNode(std::size_t, const Child&)
+    -> DynamicPowerNode<Child>;
 
 
   //! Uniform type-tree with static size.
-  template<class SubTree, std::size_t n>
+  template<class Child, std::size_t n>
   struct StaticUniformPowerNode
       : public TreeProperties<IsLeaf<false>,IsUniform<true>,IsTypeUniform<true>,HasStaticSize<true>>
   {
     //! The type of the childs
-    using ChildType = SubTree;
+    using ChildType = Child;
 
-    //! Constructor that stores the `subTree`. Can be used for class-template-argument deduction.
-    StaticUniformPowerNode(index_constant<n>, SubTree subTree)
-      : subTree_{std::move(subTree)}
+    //! Constructor that stores the `child`. Can be used for class-template-argument deduction.
+    StaticUniformPowerNode(index_constant<n>, Child child)
+      : child_{std::move(child)}
     {}
 
     //! Return a reference to the i'th child of the tree
@@ -233,9 +237,9 @@ namespace TypeTree {
     {
       assert(std::size_t(i) < n);
       if constexpr(sizeof...(II) > 0)
-        return subTree_.child(ii...);
+        return child_.child(ii...);
       else
-        return subTree_;
+        return child_;
     }
 
     //! Return a const reference to the i'th child of the tree
@@ -244,31 +248,31 @@ namespace TypeTree {
     {
       assert(std::size_t(i) < n);
       if constexpr(sizeof...(II) > 0)
-        return subTree_.child(ii...);
+        return child_.child(ii...);
       else
-        return subTree_;
+        return child_;
     }
 
     //! Return the number of nodes
     static constexpr index_constant<n> degree() { return {}; }
 
-    SubTree subTree_;
+    Child child_;
   };
 
 
   //! Uniform type-tree with dynamic size.
-  template<class SubTree>
+  template<class Child>
   struct DynamicUniformPowerNode
       : public TreeProperties<IsLeaf<false>,IsUniform<true>,IsTypeUniform<true>,HasStaticSize<false>>
   {
     //! The type of the childs
-    using ChildType = SubTree;
+    using ChildType = Child;
 
-    //! Constructor that stores the `degree` and the `subTree`.
+    //! Constructor that stores the `degree` and the `child`.
     //! Can be used for class-template-argument deduction.
-    DynamicUniformPowerNode(std::size_t degree, SubTree subTree)
+    DynamicUniformPowerNode(std::size_t degree, Child child)
       : degree_{degree}
-      , subTree_{std::move(subTree)}
+      , child_{std::move(child)}
     {}
 
     //! Return a reference to the i'th child of the tree
@@ -277,9 +281,9 @@ namespace TypeTree {
     {
       assert(std::size_t(i) < degree_);
       if constexpr(sizeof...(II) > 0)
-        return subTree_.child(ii...);
+        return child_.child(ii...);
       else
-        return subTree_;
+        return child_;
     }
 
     //! Return a const reference to the i'th child of the tree
@@ -288,16 +292,16 @@ namespace TypeTree {
     {
       assert(std::size_t(i) < degree_);
       if constexpr(sizeof...(II) > 0)
-        return subTree_.child(ii...);
+        return child_.child(ii...);
       else
-        return subTree_;
+        return child_;
     }
 
     //! Return the number of nodes
     std::size_t degree() const { return degree_; }
 
     std::size_t degree_;
-    SubTree subTree_;
+    Child child_;
   };
 
 }} // end namespace Dune::TypeTree

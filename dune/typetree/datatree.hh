@@ -60,7 +60,7 @@ template<class Data, class Tree,
   std::enable_if_t<std::is_default_constructible_v<Data>, int> = 0>
 auto makeDataTree(const Tree& tree)
 {
-  return transformedTree(tree, [](auto&& node)
+  return transformedTree(tree, [](auto&& /*source*/, auto&& node)
   {
     return DataNodeMixin{std::forward<decltype(node)>(node), Data{}};
   });

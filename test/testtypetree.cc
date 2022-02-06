@@ -65,16 +65,14 @@ int main(int argc, char** argv)
 
   typedef SimplePower<SimpleLeaf,3> SP1;
   SP1 sp1_1;
-  sp1_1.setChild(0,sl1);
-  sp1_1.setChild(1,sl1);
-  sp1_1.setChild(2,sl1);
+  sp1_1[0] = sl1;
+  sp1_1[1] = sl1;
+  sp1_1[2] = sl1;
 
   SimpleLeaf sl2;
-  SP1 sp1_2(sl2,false);
+  SP1 sp1_2(sl2,sl2,sl2);
 
-  SP1 sp1_2a(sl2,true);
-
-  check<SP1,2,4,3>(sp1_2a);
+  check<SP1,2,4,3>(sp1_2);
 
   typedef SimpleComposite<SimpleLeaf,SP1,SimpleLeaf> SC1;
   SC1 sc1_1(sl1,sp1_2,sl2);

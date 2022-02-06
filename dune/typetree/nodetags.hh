@@ -4,6 +4,8 @@
 #ifndef DUNE_TYPETREE_NODETAGS_HH
 #define DUNE_TYPETREE_NODETAGS_HH
 
+#include <type_traits>
+
 namespace Dune {
   namespace TypeTree {
 
@@ -30,10 +32,20 @@ namespace Dune {
     struct StartTag {};
 
 
+    template<class N>
+    struct NodeTagImpl
+    {
+      using type = std::conditional_t<
+        N::isLeaf, LeafNodeTag, std::conditional_t<
+        N::isPower && N::hasStaticSize, PowerNodeTag, std::conditional_t<
+        N::isPower && !N::hasStaticSize, DynamicPowerNodeTag, std::conditional_t<
+        N::isComposite, CompositeNodeTag, void>>>>;
+    };
 
 #endif // DOXYGEN
 
     //! \} group Nodes
+
 
   } // namespace TypeTree
 } //namespace Dune

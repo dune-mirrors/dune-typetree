@@ -11,6 +11,8 @@ int main()
 
 #else
 
+#include <dune/typetree/transformedtree.hh>
+
 #include "typetreetestutility.hh"
 #include "typetreetargetnodes.hh"
 
@@ -25,20 +27,33 @@ int main(int argc, char** argv)
 
   Dune::TypeTree::applyToTree(sl1,treePrinter);
 
-  Dune::TypeTree::TransformTree<SimpleLeaf,TestTransformation>::transformed_type tl1 =
-    Dune::TypeTree::TransformTree<SimpleLeaf,TestTransformation>::transform(sl1,TestTransformation());
+  auto testTransformation = [](const auto& sourceNode, const auto& nodeBase) {
+    using Node = std::decay_t<decltype(sourceNode)>;
+    if constexpr(Node::isLeaf)
+      return TargetLeaf{sourceNode,nodeBase};
+    else if constexpr(Node::isPower && Node::hasStaticSize)
+      return TargetPower{sourceNode,nodeBase};
+    else if constexpr(Node::isPower)
+      return TargetDynamicPower{sourceNode,nodeBase};
+    else if constexpr(Node::isComposite)
+      return TargetComposite{sourceNode,nodeBase};
+    else
+      return 0;
+  };
+
+  auto tl1 = transformedTree(sl1, testTransformation);
 
   typedef SimpleDynamicPower<SimpleLeaf> SDP;
   SDP sdp(sl1,sl1,sl1);
 
   typedef SimplePower<SimpleLeaf,3> SP1;
   SP1 sp1_1;
-  sp1_1.setChild(0,sl1);
-  sp1_1.setChild(1,sl1);
-  sp1_1.setChild(2,sl1);
+  sp1_1[0] = sl1;
+  sp1_1[1] = sl1;
+  sp1_1[2] = sl1;
 
   SimpleLeaf sl2;
-  SP1 sp1_2(sl2,false);
+  SP1 sp1_2(sl2,sl2,sl2);
 
   typedef SimpleComposite<SimpleLeafDerived,SP1,SimpleLeaf> SVC1;
 
@@ -46,16 +61,9 @@ int main(int argc, char** argv)
 
   Dune::TypeTree::applyToTree(sp1_1,TreePrinter());
 
-  TestTransformation trafo;
-
-  Dune::TypeTree::TransformTree<SDP,TestTransformation>::transformed_type tsdp1_1 =
-    Dune::TypeTree::TransformTree<SDP,TestTransformation>::transform(sdp,trafo);
-
-  Dune::TypeTree::TransformTree<SP1,TestTransformation>::transformed_type tp1_1 =
-    Dune::TypeTree::TransformTree<SP1,TestTransformation>::transform(sp1_1,trafo);
-
-  Dune::TypeTree::TransformTree<SVC1,TestTransformation>::transformed_type tvc1_1 =
-    Dune::TypeTree::TransformTree<SVC1,TestTransformation>::transform(svc1_1,TestTransformation());
+  auto tsdp1_1 = transformedTree(sdp, testTransformation);
+  auto tp1_1   = transformedTree(sp1_1, testTransformation);
+  auto tvc1_1  = transformedTree(svc1_1, testTransformation);
 
   Dune::TypeTree::applyToTree(tvc1_1,TreePrinter());
 

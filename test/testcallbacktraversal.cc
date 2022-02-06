@@ -4,9 +4,7 @@
 
 #include <dune/common/test/testsuite.hh>
 
-#include <dune/typetree/leafnode.hh>
-#include <dune/typetree/powernode.hh>
-#include <dune/typetree/compositenode.hh>
+#include <dune/typetree/nodes.hh>
 #include <dune/typetree/traversal.hh>
 
 

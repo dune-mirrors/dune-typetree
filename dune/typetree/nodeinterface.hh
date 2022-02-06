@@ -71,9 +71,12 @@ namespace Dune {
       typedef ImplementationDefined NodeStorage;
     };
 
+    template<class N>
+    struct NodeTagImpl;
+
     //! Returns the node tag of the given Node.
     template<typename Node>
-    using NodeTag = typename std::decay_t<Node>::NodeTag;
+    using NodeTag = typename NodeTagImpl<std::decay_t<Node>>::type;
 
     //! Returns the implementation tag of the given Node.
     template<typename T>

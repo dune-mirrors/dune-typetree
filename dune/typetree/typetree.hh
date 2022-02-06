@@ -6,7 +6,7 @@
 
 #include <dune/typetree/nodetags.hh>
 #include <dune/typetree/utility.hh>
-#include <dune/typetree/typetrees.hh>
+#include <dune/typetree/nodes.hh>
 #include <dune/typetree/traversal.hh>
 #include <dune/typetree/pairtraversal.hh>
 #include <dune/typetree/traversalutilities.hh>

@@ -134,7 +134,7 @@ namespace Dune {
 #endif // DOXYGEN
 
         //! The type of the child.
-        typedef typename OriginalChild::Type Type;
+        typedef typename OriginalChild Type;
 
         //! The type of the child.
         typedef typename OriginalChild::type type;

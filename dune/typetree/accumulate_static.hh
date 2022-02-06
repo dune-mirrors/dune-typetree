@@ -148,7 +148,7 @@ namespace Dune {
 
         typedef decltype(push_back(TreePath{},index_constant<i>{})) child_tree_path;
 
-        typedef typename Node::template Child<i>::Type child;
+        typedef typename Node::template Child<i> child;
 
         static const result_type child_result = accumulate_value<child,Functor,Reduction,ParentChildReduction,current_value,child_tree_path,NodeTag<child>>::result;
 
@@ -367,7 +367,7 @@ namespace Dune {
 
         typedef decltype(push_back(TreePath{},index_constant<i>{})) child_tree_path;
 
-        typedef typename Node::template Child<i>::Type child;
+        typedef typename Node::template Child<i> child;
 
         typedef typename accumulate_type<
           child,

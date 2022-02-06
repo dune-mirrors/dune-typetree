@@ -1,3 +1,4 @@
+#pragma once
 
 #include <dune/typetree/typetree.hh>
 #include <dune/typetree/pairtraversal.hh>
@@ -96,6 +97,8 @@ struct SimpleLeaf
     std::cout << "copy ctor" << std::endl;
   }
 
+  SimpleLeaf& operator=(const SimpleLeaf&) = default;
+  SimpleLeaf& operator=(SimpleLeaf&&) = default;
 };
 
 struct SimpleLeafDerived
@@ -113,7 +116,7 @@ struct SimplePowerTag {};
 
 template<typename T, std::size_t k>
 struct SimplePower
-  : public Dune::TypeTree::PowerNode<T,k>
+  : public Dune::TypeTree::StaticPowerNode<T,k>
   , public Counter
 {
 
@@ -124,13 +127,9 @@ struct SimplePower
     return "SimplePower";
   }
 
-  typedef Dune::TypeTree::PowerNode<T,k> BaseT;
+  typedef Dune::TypeTree::StaticPowerNode<T,k> BaseT;
 
   SimplePower() {}
-
-  SimplePower(T& c, bool copy)
-    : BaseT(c,copy)
-  {}
 
   template<typename C1, typename C2, typename... Children>
   SimplePower(C1&& c1, C2&& c2, Children&&... children)
@@ -182,13 +181,9 @@ struct SimpleDynamicPower
 
   SimpleDynamicPower() {}
 
-  SimpleDynamicPower(T& c, bool copy)
-    : BaseT(c,copy)
-  {}
-
   template<typename C1, typename C2, typename... Children>
   SimpleDynamicPower(C1&& c1, C2&& c2, Children&&... children)
-    : BaseT(std::forward<C1>(c1),std::forward<C2>(c2),std::forward<Children>(children)...)
+    : BaseT{std::forward<C1>(c1),std::forward<C2>(c2),std::forward<Children>(children)...}
   {}
 
 };
