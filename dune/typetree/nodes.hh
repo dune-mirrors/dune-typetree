@@ -16,7 +16,7 @@
 namespace Dune {
 namespace TypeTree {
 
-  enum class Properties
+  enum class Properties : int
   {
     IsLeaf        = 1,
     IsUniform     = 2,
@@ -25,30 +25,24 @@ namespace TypeTree {
   };
 
   // composition of flags
-  Properties operator|(Properties lhs, Properties rhs)
+  constexpr Properties operator|(Properties lhs, Properties rhs)
   {
-    return static_cast<Properties>(
-        static_cast<std::underlying_type_t<Properties>>(lhs) |
-        static_cast<std::underlying_type_t<Properties>>(rhs)
-    );
+    return static_cast<Properties>(static_cast<int>(lhs) | static_cast<int>(rhs));
   }
 
   // test for flags
-  Properties operator&(Properties lhs, Properties rhs)
+  constexpr bool isSet(Properties lhs, Properties rhs)
   {
-    return static_cast<Properties>(
-        static_cast<std::underlying_type_t<Properties>>(lhs) &
-        static_cast<std::underlying_type_t<Properties>>(rhs)
-    );
+    return static_cast<Properties>(static_cast<int>(lhs) & static_cast<int>(rhs)) == rhs;
   }
 
   template<Properties props>
   struct TreeProperties
   {
-    inline static constexpr bool isLeaf = props & Properties::IsLeaf;
-    inline static constexpr bool isUniform = props & Properties::IsUniform;
-    inline static constexpr bool isTypeUniform = props & Properties::IsTypeUniform;
-    inline static constexpr bool hasStaticSize = props & Properties::HasStaticSize;
+    inline static constexpr bool isLeaf = isSet(props, Properties::IsLeaf);
+    inline static constexpr bool isUniform = isSet(props, Properties::IsUniform);
+    inline static constexpr bool isTypeUniform = isSet(props, Properties::IsTypeUniform);
+    inline static constexpr bool hasStaticSize = isSet(props, Properties::HasStaticSize);
 
     // for backwards compatibility
     inline static constexpr bool isPower = !isLeaf && isTypeUniform && !isUniform;
