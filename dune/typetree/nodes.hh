@@ -1,7 +1,7 @@
 // -*- tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
 // vi: set et ts=4 sw=2 sts=2:
-#ifndef DUNE_TYPETREE_TYPETREE_HH
-#define DUNE_TYPETREE_TYPETREE_HH
+#ifndef DUNE_TYPETREE_NODES_HH
+#define DUNE_TYPETREE_NODES_HH
 
 #include <array>
 #include <cassert>
@@ -16,18 +16,39 @@
 namespace Dune {
 namespace TypeTree {
 
-  template <bool b> struct IsLeaf        { inline static constexpr bool value = b; };
-  template <bool b> struct IsUniform     { inline static constexpr bool value = b; };
-  template <bool b> struct IsTypeUniform { inline static constexpr bool value = b; };
-  template <bool b> struct HasStaticSize { inline static constexpr bool value = b; };
+  enum class Properties
+  {
+    IsLeaf        = 1,
+    IsUniform     = 2,
+    IsTypeUniform = 4,
+    HasStaticSize = 8
+  };
 
-  template<class IsLeaf_, class IsUniform_, class IsTypeUniform_, class HasStaticSize_>
+  // composition of flags
+  Properties operator|(Properties lhs, Properties rhs)
+  {
+    return static_cast<Properties>(
+        static_cast<std::underlying_type_t<Properties>>(lhs) |
+        static_cast<std::underlying_type_t<Properties>>(rhs)
+    );
+  }
+
+  // test for flags
+  Properties operator&(Properties lhs, Properties rhs)
+  {
+    return static_cast<Properties>(
+        static_cast<std::underlying_type_t<Properties>>(lhs) &
+        static_cast<std::underlying_type_t<Properties>>(rhs)
+    );
+  }
+
+  template<Properties props>
   struct TreeProperties
   {
-    inline static constexpr bool isLeaf = IsLeaf_::value;
-    inline static constexpr bool isUniform = IsUniform_::value;
-    inline static constexpr bool isTypeUniform = IsTypeUniform_::value;
-    inline static constexpr bool hasStaticSize = HasStaticSize_::value;
+    inline static constexpr bool isLeaf = props & Properties::IsLeaf;
+    inline static constexpr bool isUniform = props & Properties::IsUniform;
+    inline static constexpr bool isTypeUniform = props & Properties::IsTypeUniform;
+    inline static constexpr bool hasStaticSize = props & Properties::HasStaticSize;
 
     // for backwards compatibility
     inline static constexpr bool isPower = !isLeaf && isTypeUniform && !isUniform;
@@ -42,7 +63,7 @@ namespace TypeTree {
 
   //! Leaf tree node with degree 0
   struct LeafNode
-      : public TreeProperties<IsLeaf<true>,IsUniform<false>,IsTypeUniform<false>,HasStaticSize<true>>
+      : public TreeProperties<Properties::IsLeaf | Properties::HasStaticSize>
   {
     static constexpr index_constant<0> degree() { return {}; }
   };
@@ -52,7 +73,7 @@ namespace TypeTree {
   template<class... Childs>
   struct CompositeNode
       : private Dune::TupleVector<Childs...>
-      , public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<false>,HasStaticSize<true>>
+      , public TreeProperties<Properties::HasStaticSize>
   {
     using Super = Dune::TupleVector<Childs...>;
 
@@ -101,7 +122,7 @@ namespace TypeTree {
   //! Non-uniform type-tree with all sub-trees of the same type and static size.
   template<class Child, std::size_t n>
   struct StaticPowerNode
-      : public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<true>,HasStaticSize<true>>
+      : public TreeProperties<Properties::IsTypeUniform | Properties::HasStaticSize>
       , public std::array<Child,n>
   {
     using Super = std::array<Child, n>;
@@ -175,7 +196,7 @@ namespace TypeTree {
   //! Non-uniform type-tree with all sub-trees of the same type and dynamic size.
   template<class Child>
   struct DynamicPowerNode
-      : public TreeProperties<IsLeaf<false>,IsUniform<false>,IsTypeUniform<true>,HasStaticSize<false>>
+      : public TreeProperties<Properties::IsTypeUniform>
       , public std::vector<Child>
   {
     using Super = std::vector<Child>;
@@ -221,7 +242,7 @@ namespace TypeTree {
   //! Uniform type-tree with static size.
   template<class Child, std::size_t n>
   struct StaticUniformPowerNode
-      : public TreeProperties<IsLeaf<false>,IsUniform<true>,IsTypeUniform<true>,HasStaticSize<true>>
+      : public TreeProperties<Properties::IsUniform | Properties::IsTypeUniform | Properties::HasStaticSize>
   {
     //! The type of the childs
     using ChildType = Child;
@@ -263,7 +284,7 @@ namespace TypeTree {
   //! Uniform type-tree with dynamic size.
   template<class Child>
   struct DynamicUniformPowerNode
-      : public TreeProperties<IsLeaf<false>,IsUniform<true>,IsTypeUniform<true>,HasStaticSize<false>>
+      : public TreeProperties<Properties::IsUniform | Properties::IsTypeUniform>
   {
     //! The type of the childs
     using ChildType = Child;
@@ -306,4 +327,4 @@ namespace TypeTree {
 
 }} // end namespace Dune::TypeTree
 
-#endif // DUNE_TYPETREE_TYPETREETREE_HH
+#endif // DUNE_TYPETREE_NODES_HH
