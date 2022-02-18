@@ -52,7 +52,7 @@ public:
 
   template<class N = Node,
     std::enable_if_t<std::is_default_constructible_v<N>, int> = 0>
-  explicit ContainerNodeMixin()
+  ContainerNodeMixin()
     : Node{}
   {}
 
