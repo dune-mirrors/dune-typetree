@@ -6,8 +6,8 @@ SPDX-License-Identifier: LGPL-3.0-or-later OR LicenseRef-GPL-2.0-only-with-PDELa
 Changes
 =======
 
-TypeTree 2.9-git
-----------------
+TypeTree 2.9
+------------
 
 -   Remove `apply_to_tuple` utility.
 -   Add support for `ProxyNode` on nodes with dynamic degree.
