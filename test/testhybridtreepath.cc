@@ -71,6 +71,17 @@ int main(int argc, char** argv)
     suite.check(jpath[_4] == 5);
   }
 
+  { // test the operator/ based joining of treepaths
+
+    using namespace Dune::TypeTree;
+
+    constexpr auto tp1 = treePath(0,1) / 2;
+    static_assert(tp1 == treePath(0,1,2));
+
+    constexpr auto tp2 = 2_tp / treePath(1,_0);
+    static_assert(tp2 == treePath(_2,1,_0));
+  }
+
   { // test the operator== for HybridTreePath
 
     using Dune::TypeTree::hybridTreePath;

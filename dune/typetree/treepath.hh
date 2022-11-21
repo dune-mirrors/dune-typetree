@@ -203,6 +203,13 @@ namespace Dune {
       return HybridTreePath<T...>(t...);
     }
 
+    //! if the argument is already a treepath, return it directly
+    template<typename... T>
+    constexpr HybridTreePath<T...> hybridTreePath(const HybridTreePath<T...>& tp)
+    {
+      return tp;
+    }
+
     //! Constructs a new `HybridTreePath` from the given indices.
     /**
      * This function returns a new `HybridTreePath` with the given index values. It exists
@@ -212,6 +219,13 @@ namespace Dune {
     [[nodiscard]] constexpr HybridTreePath<T...> treePath(const T&... t)
     {
       return HybridTreePath<T...>(t...);
+    }
+
+    //! if the argument is already a treepath, return it directly
+    template<typename... T>
+    constexpr HybridTreePath<T...> treePath(const HybridTreePath<T...>& tp)
+    {
+      return tp;
     }
 
 
@@ -397,6 +411,20 @@ namespace Dune {
     template<class... Head, class... Other>
     [[nodiscard]] constexpr auto join(const HybridTreePath<Head...>& head, const Other&... tail) {
       return TypeTree::HybridTreePath{std::tuple_cat(head._data, tail._data...)};
+    }
+
+
+    //! Join a tree path with another path or index.
+    /**
+     * \par Example
+     * \code{.cc}
+     *  auto tp1 = treePath(0,1) / 2;     // == treepath(0,1,2)
+     *  auto tp2 = 2_tp / treePath(1,_0); // == treePath(_2,1,_0)
+     * \endcode
+     */
+    template<class... Head, class Other>
+    constexpr auto operator/(const HybridTreePath<Head...>& head, const Other& tail) {
+      return join(head, hybridTreePath(tail));
     }
 
     //! Reverses the order of the elements in the path
