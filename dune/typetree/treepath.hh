@@ -205,7 +205,7 @@ namespace Dune {
 
     //! if the argument is already a treepath, return it directly
     template<typename... T>
-    constexpr HybridTreePath<T...> hybridTreePath(const HybridTreePath<T...>& tp)
+    [[nodiscard]] constexpr HybridTreePath<T...> hybridTreePath(const HybridTreePath<T...>& tp)
     {
       return tp;
     }
@@ -223,7 +223,7 @@ namespace Dune {
 
     //! if the argument is already a treepath, return it directly
     template<typename... T>
-    constexpr HybridTreePath<T...> treePath(const HybridTreePath<T...>& tp)
+    [[nodiscard]] constexpr HybridTreePath<T...> treePath(const HybridTreePath<T...>& tp)
     {
       return tp;
     }
@@ -423,7 +423,7 @@ namespace Dune {
      * \endcode
      */
     template<class... Head, class Other>
-    constexpr auto operator/(const HybridTreePath<Head...>& head, const Other& tail) {
+    [[nodiscard]] constexpr auto operator/(const HybridTreePath<Head...>& head, const Other& tail) {
       return join(head, hybridTreePath(tail));
     }
 
