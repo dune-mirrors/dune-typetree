@@ -18,7 +18,7 @@ int main(int argc, char** argv)
   Dune::TestSuite suite("Check HybridTypeTree()");
 
   {
-    auto root = Dune::TypeTree::hybridTreePath();
+    constexpr auto root = Dune::TypeTree::hybridTreePath();
     constexpr auto path = Dune::TypeTree::hybridTreePath(_1,3,_2,5);
 
     static_assert(std::is_same<std::decay_t<decltype(path.element(_0))>,std::decay_t<decltype(_1)>>{},"wrong entry value");
