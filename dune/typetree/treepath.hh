@@ -410,7 +410,7 @@ namespace Dune {
     //! Join two tree paths into one
     template<class... Head, class... Other>
     [[nodiscard]] constexpr auto join(const HybridTreePath<Head...>& head, const Other&... tail) {
-      return TypeTree::HybridTreePath{std::tuple_cat(head._data, tail._data...)};
+      return TypeTree::HybridTreePath{std::tuple_cat(head._data, hybridTreePath(tail)._data...)};
     }
 
 
@@ -424,7 +424,7 @@ namespace Dune {
      */
     template<class... Head, class Other>
     [[nodiscard]] constexpr auto operator/(const HybridTreePath<Head...>& head, const Other& tail) {
-      return join(head, hybridTreePath(tail));
+      return join(head, tail);
     }
 
     //! Reverses the order of the elements in the path
