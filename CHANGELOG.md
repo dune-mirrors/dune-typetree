@@ -9,6 +9,7 @@ Changes
 TypeTree 2.10-git
 ----------------
 
+- `HybridTreePath` is now ordered wrt any other `HybridTreePath` when used with C++20
 - `HybridTreePath` functions now have `[[nodiscard]]` attribute
 - `HybridTreePath` gained several multi-index utilities:
   `max_size`, `join`, `reverse`, and `accumulate_[front|back]`.

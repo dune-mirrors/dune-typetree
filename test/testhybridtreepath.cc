@@ -9,6 +9,10 @@
 #include <dune/common/version.hh>
 #include <dune/common/test/testsuite.hh>
 
+#if __cpp_lib_concepts >= 202002
+#include <concepts>
+#endif
+
 #include <dune/typetree/typetree.hh>
 
 int main(int argc, char** argv)
@@ -97,6 +101,24 @@ int main(int argc, char** argv)
     static_assert(decltype(a != c)::value);
     */
   }
+
+#if __cpp_impl_three_way_comparison >= 201907
+  { // test three way comparison
+    using Dune::TypeTree::hybridTreePath;
+    static_assert(hybridTreePath(_1,_2,_3) < hybridTreePath(_3,_2,_1));
+    static_assert(hybridTreePath(_4,_2,_3) > hybridTreePath(3u,2,1l));
+    static_assert(hybridTreePath(4,2) > hybridTreePath(3));
+    static_assert(hybridTreePath(4,2) > hybridTreePath(3,3));
+    static_assert(hybridTreePath(4,2) >= hybridTreePath(4,1));
+    static_assert(hybridTreePath(4,2) >= hybridTreePath(4,1,2));
+    auto one = 1, two = 2;
+    suite.check(hybridTreePath(one,2) < hybridTreePath(two,1,2));
+
+#if __cpp_lib_concepts >= 202002
+    static_assert(std::totally_ordered<decltype(hybridTreePath(4,1,2))>);
+#endif
+  }
+#endif
 
   {
     using namespace Dune::TypeTree;
