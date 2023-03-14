@@ -496,15 +496,6 @@ namespace Dune {
 
     //! Compare two `HybridTreePath`s ordering
     template<class... S, class... T>
-    requires (sizeof...(S) == sizeof...(T))
-    constexpr auto operator<=>(const HybridTreePath<S...>& lhs, const HybridTreePath<T...>& rhs)
-    {
-      return (lhs._data <=> rhs._data);
-    }
-
-    //! Compare two `HybridTreePath`s ordering
-    template<class... S, class... T>
-    requires (sizeof...(S) != sizeof...(T))
     constexpr auto operator<=>(const HybridTreePath<S...>& lhs, const HybridTreePath<T...>& rhs)
     {
       // utility to make a common sized tuple
@@ -518,7 +509,7 @@ namespace Dune {
       const auto comp = make_common_tuple(lhs._data) <=> make_common_tuple(rhs._data);
       if (comp != 0) return comp;
       // if the common part is equal, decide by the size
-      return sizeof...(S) <=> sizeof...(T);
+      return static_cast<decltype(comp)>(sizeof...(S) <=> sizeof...(T));
     }
 #endif // __cpp_impl_three_way_comparison
 
