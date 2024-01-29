@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     auto comp0 = hybridTreePath(_1,_2,_3) == hybridTreePath(_1,_2,_3);
     static_assert(decltype(comp0)::value_type);
     static_assert(hybridTreePath(_1,_2,_3) != hybridTreePath(_3,_2,_1));
-    auto comp1 = hybridTreePath(_1,_2,_3) != hybridTreePath(_3,_2,_1)
+    auto comp1 = hybridTreePath(_1,_2,_3) != hybridTreePath(_3,_2,_1);
     static_assert(!decltype(comp0)::value_type);
 
     auto a = hybridTreePath(std::integral_constant<int,0>{}, std::integral_constant<int,1>{});
