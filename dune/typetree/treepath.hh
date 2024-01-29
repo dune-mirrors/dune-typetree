@@ -8,6 +8,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <version>
 
 #include <dune/common/documentation.hh>
 #include <dune/common/typetraits.hh>
