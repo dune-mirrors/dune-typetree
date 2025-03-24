@@ -14,6 +14,7 @@
 #include <dune/typetree/childextraction.hh>
 #include <dune/typetree/treepath.hh>
 #include <dune/typetree/visitor.hh>
+#include <dune/typetree/nodeconcept.hh>
 
 namespace Dune {
   namespace TypeTree {
@@ -31,6 +32,44 @@ namespace Dune {
       constexpr void operator()(T&&...) const { /* do nothing */ }
     };
 #endif
+
+    /**
+     * @brief Traverse each child of a tree and apply a callable function.
+     *
+     * This function iterates over each child node of a given tree and
+     * applies a callable function to each child. The callable function can accept
+     * either one or two arguments: the child node itself, and optionally, its index.
+     *
+     * @tparam Tree The type of the tree container to be traversed. This must
+     *                   satisfy the Concept::InnerTreeNode concept.
+     * @tparam Callable  The type of the callable function (functor) to be applied
+     *                   to each child node. This can be a lambda, function pointer,
+     *                   or any callable object.
+     *
+     * @param container The tree container whose children will be traversed.
+     * @param at_value  The callable function to be applied to each child node.
+     *                  This function can accept either one argument (the child node)
+     *                  or two arguments (the child node and its index).
+     */
+    template<Concept::InnerTreeNode Tree, class Callable>
+    constexpr void forEachChild(Tree&& container, Callable&& at_value)
+    {
+      auto invoke = [&at_value]<class Value, class Index>(Value&& value, Index index){
+        static_assert(std::invocable<Callable&&, Value&&, Index> || std::invocable<Callable&&, Value&&>);
+        if constexpr (std::invocable<Callable&&, Value&&, Index>)
+          at_value(std::forward<Value>(value), index);
+        else
+          at_value(std::forward<Value>(value));
+      };
+
+      if constexpr (Concept::UniformInnerTreeNode<Tree>)
+        for (std::size_t i = 0; i != container.degree(); ++i)
+          invoke(std::forward<Tree>(container).child(i), i);
+      else
+        Dune::unpackIntegerSequence(
+          [&](auto... i) { (invoke(std::forward<Tree>(container).child(i), i), ...); },
+          std::make_index_sequence<std::remove_cvref_t<Tree>::degree()>{});
+    }
 
     namespace Detail {
 
@@ -109,25 +148,18 @@ namespace Dune {
         using Visitor = std::remove_reference_t<V>;
         visitor.pre(tree, treePath);
 
-        // check which type of traversal is supported by the tree
-        using allowDynamicTraversal = Dune::Std::is_detected<DynamicTraversalConcept,Tree>;
-        using allowStaticTraversal = Dune::Std::is_detected<StaticTraversalConcept,Tree>;
-
-        // the tree must support either dynamic or static traversal
-        static_assert(allowDynamicTraversal::value || allowStaticTraversal::value);
-
         // the visitor may specify preferred dynamic traversal
         using preferDynamicTraversal = std::bool_constant<Visitor::treePathType == TreePathType::dynamic>;
 
         // create a dynamic or static index range
         auto indices = [&]{
-          if constexpr(preferDynamicTraversal::value && allowDynamicTraversal::value)
+          if constexpr(preferDynamicTraversal::value && Concept::UniformInnerTreeNode<Tree>)
             return Dune::range(std::size_t(tree.degree()));
           else
             return Dune::range(tree.degree());
         }();
 
-        if constexpr(allowDynamicTraversal::value || allowStaticTraversal::value) {
+        if constexpr(Concept::InnerTreeNode<Tree>) {
           Hybrid::forEach(indices, [&](auto i) {
             auto&& child = tree.child(i);
             using Child = std::decay_t<decltype(child)>;
@@ -159,37 +191,35 @@ namespace Dune {
        * Hence the behavior of the public function is resembled
        * by passing an empty treePath.
        */
-      template<class T, class TreePath, class PreFunc, class LeafFunc, class PostFunc>
+      template<Concept::TreeNode T, class TreePath, class PreFunc, class LeafFunc, class PostFunc>
       void forEachNode(T&& tree, TreePath treePath, PreFunc&& preFunc, LeafFunc&& leafFunc, PostFunc&& postFunc)
       {
         using Tree = std::decay_t<T>;
-        if constexpr(Tree::isLeaf) {
-          leafFunc(tree, treePath);
+
+        auto invoke = [&treePath,&tree]<class Callable>(Callable&& callable){
+          if constexpr (std::invocable<Callable&&, Tree&&, const TreePath&>)
+            callable(tree, std::as_const(treePath));
+          else
+            callable(tree);
+        };
+
+        if constexpr(Concept::LeafTreeNode<Tree>) {
+          invoke(leafFunc);
         } else {
-          preFunc(tree, treePath);
 
-          // check which type of traversal is supported by the tree, prefer dynamic traversal
-          using allowDynamicTraversal = Dune::Std::is_detected<DynamicTraversalConcept,Tree>;
-          using allowStaticTraversal = Dune::Std::is_detected<StaticTraversalConcept,Tree>;
-
-          // the tree must support either dynamic or static traversal
-          static_assert(allowDynamicTraversal::value || allowStaticTraversal::value);
-
-          if constexpr(allowDynamicTraversal::value) {
-            // Specialization for dynamic traversal
-            for (std::size_t i = 0; i < tree.degree(); ++i) {
-              auto childTreePath = Dune::TypeTree::push_back(treePath, i);
-              forEachNode(tree.child(i), childTreePath, preFunc, leafFunc, postFunc);
-            }
-          } else if constexpr(allowStaticTraversal::value) {
-            // Specialization for static traversal
-            auto indices = std::make_index_sequence<Tree::degree()>{};
-            Hybrid::forEach(indices, [&](auto i) {
-              auto childTreePath = Dune::TypeTree::push_back(treePath, i);
-              forEachNode(tree.child(i), childTreePath, preFunc, leafFunc, postFunc);
+          invoke(preFunc);
+          forEachChild(
+            tree,
+            [&]<class Child>(Child&& child, auto i) {
+              forEachNode(
+                std::forward<Child>(child),
+                push_back(treePath, i),
+                preFunc,
+                leafFunc,
+                postFunc
+              );
             });
-          }
-          postFunc(tree, treePath);
+          invoke(postFunc);
         }
       }
 
@@ -234,7 +264,7 @@ namespace Dune {
      * \param tree    The tree the visitor will be applied to.
      * \param visitor The visitor to apply to the tree.
      */
-    template<typename Tree, typename Visitor>
+    template<Concept::TreeNode Tree, typename Visitor>
     void applyToTree(Tree&& tree, Visitor&& visitor)
     {
       Detail::applyToTree(tree, hybridTreePath(), visitor);
@@ -270,7 +300,7 @@ namespace Dune {
      * \param tree The tree to traverse
      * \param nodeFunc This function is called for each node
      */
-    template<class Tree, class NodeFunc>
+    template<Concept::TreeNode Tree, class NodeFunc>
     void forEachNode(Tree&& tree, NodeFunc&& nodeFunc)
     {
       Detail::forEachNode(tree, hybridTreePath(), nodeFunc, nodeFunc, NoOp{});
@@ -285,7 +315,7 @@ namespace Dune {
      * \param tree The tree to traverse
      * \param leafFunc This function is called for each leaf node
      */
-    template<class Tree, class LeafFunc>
+    template<Concept::TreeNode Tree, class LeafFunc>
     void forEachLeafNode(Tree&& tree, LeafFunc&& leafFunc)
     {
       Detail::forEachNode(tree, hybridTreePath(), NoOp{}, leafFunc, NoOp{});
