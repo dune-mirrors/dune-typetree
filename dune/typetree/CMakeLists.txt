@@ -12,6 +12,7 @@ install(FILES
   fixedcapacitystack.hh
   generictransformationdescriptors.hh
   leafnode.hh
+  nodeconcept.hh
   nodeinterface.hh
   nodetags.hh
   pairtraversal.hh
