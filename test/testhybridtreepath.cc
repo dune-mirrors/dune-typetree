@@ -188,5 +188,19 @@ DUNE_NO_DEPRECATED_END
     suite.check(std::is_same_v<decltype(d), Dune::index_constant<3>>);
   }
 
+  {
+    using namespace Dune;
+    using namespace Dune::TypeTree;
+    using namespace Dune::Indices;
+
+    suite.check(std::is_same_v<decltype(10_mi), decltype(hybridMultiIndex(_10))>);
+    suite.check(std::is_same_v<decltype(""_mi), decltype(hybridMultiIndex())>);
+    suite.check(std::is_same_v<decltype(" "_mi), decltype(hybridMultiIndex())>);
+    suite.check(std::is_same_v<decltype("0,1"_mi), decltype(hybridMultiIndex(_0, _1))>);
+    suite.check(std::is_same_v<decltype("10"_mi), decltype(hybridMultiIndex(_10))>);
+    suite.check(std::is_same_v<decltype("10,2"_mi), decltype(hybridMultiIndex(_10, _2))>);
+    suite.check(std::is_same_v<decltype(" 11 , 13, 0"_mi), decltype(hybridMultiIndex(_11, _13, _0))>);
+  }
+
   return suite.exit();
 }

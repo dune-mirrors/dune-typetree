@@ -450,19 +450,117 @@ namespace Dune {
   }
 
 
+  namespace Impl {
+
+    // This is the official hack to capture a string literal as non-type template
+    // argument as required by the "string literal operator template" pattern
+    template<std::size_t n>
+    struct StringLiteralTemplateCapture
+    {
+      constexpr StringLiteralTemplateCapture(const char (&stringLiteral)[n])
+      {
+        std::copy_n(stringLiteral, n, data_);
+      }
+
+      static constexpr std::size_t size()
+      {
+        return n;
+      }
+
+      constexpr char operator[](std::size_t i) const
+      {
+        return data_[i];
+      }
+
+
+      char data_[n];
+    };
+
+    template<StringLiteralTemplateCapture stringCapture, std::size_t offset=0, std::size_t currentIndex=0, std::size_t parsedDigits=0, class... ParsedIndices>
+    constexpr auto parseStringLiteralMultiIndex(Dune::HybridMultiIndex<ParsedIndices...> parsedIndices)
+    {
+      constexpr std::size_t base = 10;
+      if constexpr ((offset == stringCapture.size()) or (stringCapture[offset] == 0))
+      {
+        // We reached the end of the string.
+        // Either we have an empty multi-index, or we're just parsing an index.
+        static_assert((sizeof...(ParsedIndices)==0) or (parsedDigits>0),
+          "A comma in a multi-index literal must be preceded and followed by at least one digit.");
+        if constexpr (parsedDigits>0)
+          return Dune::HybridMultiIndex<ParsedIndices..., Dune::index_constant<currentIndex>>{};
+        else
+          return parsedIndices;
+      }
+      else
+      {
+        if constexpr (stringCapture[offset] == ' ')
+          return parseStringLiteralMultiIndex<stringCapture, offset+1, currentIndex, parsedDigits>(parsedIndices);
+        else if constexpr (stringCapture[offset] == ',')
+        {
+          // We reached the end of the digit sequence for an index but not the end of the string.
+          // Since we don't allow empty digit sequences, there must be at least one parsed digit.
+          static_assert(parsedDigits>0,
+            "A comma in a multi-index literal must be preceded and followed by at least one digit.");
+          return parseStringLiteralMultiIndex<stringCapture, offset+1, 0, 0>(Dune::HybridMultiIndex<ParsedIndices..., Dune::index_constant<currentIndex>>{});
+        }
+        else
+        {
+          // We parse a digit and continue to the next character.
+          constexpr std::size_t newIndex = currentIndex*base + Dune::Indices::Impl::char2digit(stringCapture[offset]);
+          return parseStringLiteralMultiIndex<stringCapture, offset+1, newIndex, parsedDigits+1>(parsedIndices);
+        }
+      }
+    }
+
+    template<StringLiteralTemplateCapture stringCapture>
+    constexpr auto parseStringLiteralMultiIndex()
+    {
+      return parseStringLiteralMultiIndex<stringCapture, 0, 0, 0>(Dune::HybridMultiIndex<>{});
+    }
+
+
+  } // end namespace Impl
+
   inline namespace Literals {
 
-  //! Literal to create hybrid multi-index
-  /**
-   * Example:
-   * `2_mi -> HybridMultiIndex<index_constant<2>>`
-   **/
-  template <char... digits>
-  constexpr auto operator""_mi()
-  {
-    using namespace Dune::Indices::Literals;
-    return hybridMultiIndex(operator""_ic<digits...>());
-  }
+    /**
+     * \brief Numeric literal operator to create a hybrid multi-index
+     *
+     * This allows to create hybrid multi-indices
+     * with a single digit from numeric literals.
+     *
+     * Example:
+     * `2_mi -> HybridMultiIndex<index_constant<2>>`
+     */
+    template <char... digits>
+    constexpr auto operator""_mi()
+    {
+      using namespace Dune::Indices::Literals;
+      return hybridMultiIndex(operator""_ic<digits...>());
+    }
+
+    /**
+     * \brief String literal operator to create a hybrid multi-index
+     *
+     * This allows to create hybrid multi-indices with several digits
+     * from a string literals.
+     *
+     * The supported characters are the digits `0`,...,`9`, the comma `,`,
+     * and the blank ` `. Whitespace will be ignored. Empty strings
+     * (up to whitespace) are parsed as empty multi-index.
+     * Non-empty strings must consist of a sequence of indices
+     * separated by commata. Each index is represented by a non-empty
+     * sequence of digits. I.e. a leading or trailing comma or a comma
+     * not followed by a comma is forbidden.
+     *
+     * Example:
+     * `"10, 0"_mi -> HybridMultiIndex<index_constant<10>, index_constant<0>>`
+     */
+    template <Impl::StringLiteralTemplateCapture stringCapture>
+    constexpr auto operator""_mi()
+    {
+      return Impl::parseStringLiteralMultiIndex<stringCapture>();
+    }
 
   } // end namespace Literals
 
