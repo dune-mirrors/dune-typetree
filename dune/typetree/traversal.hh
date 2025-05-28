@@ -54,20 +54,22 @@ namespace Dune {
     template<Concept::InnerTreeNode Tree, class Callable>
     constexpr void forEachChild(Tree&& container, Callable&& at_value)
     {
-      auto invoke = [&at_value]<class Value, class Index>(Value&& value, Index index){
-        static_assert(std::invocable<Callable&&, Value&&, Index> || std::invocable<Callable&&, Value&&>);
-        if constexpr (std::invocable<Callable&&, Value&&, Index>)
-          at_value(std::forward<Value>(value), index);
-        else
-          at_value(std::forward<Value>(value));
+      // To support callbacks not accepting a trailing child index argument,
+      // this helper drops this argument if needed.
+      auto invoke = []<class C, class T, class Index>(C&& callable, T&& tree, const Index& index) {
+        static_assert(std::invocable<C&&, T&&, const Index&> || std::invocable<C&&, T&&>);
+        if constexpr (std::invocable<C&&, T&&, const Index&>)
+          callable(tree, index);
+        else if constexpr (std::invocable<C&&, T&&>)
+          callable(tree);
       };
 
-      if constexpr (Concept::UniformInnerTreeNode<Tree>)
+      if constexpr (Concept::UniformInnerTreeNode<std::decay_t<Tree>>)
         for (std::size_t i = 0; i != container.degree(); ++i)
-          invoke(std::forward<Tree>(container).child(i), i);
+          invoke(at_value, std::forward<Tree>(container).child(i), i);
       else
         Dune::unpackIntegerSequence(
-          [&](auto... i) { (invoke(std::forward<Tree>(container).child(i), i), ...); },
+          [&](auto... i) { (invoke(at_value, std::forward<Tree>(container).child(i), i), ...); },
           std::make_index_sequence<std::remove_cvref_t<Tree>::degree()>{});
     }
 
@@ -191,23 +193,23 @@ namespace Dune {
        * Hence the behavior of the public function is resembled
        * by passing an empty treePath.
        */
-      template<Concept::TreeNode T, class TreePath, class PreFunc, class LeafFunc, class PostFunc>
-      void forEachNode(T&& tree, TreePath treePath, PreFunc&& preFunc, LeafFunc&& leafFunc, PostFunc&& postFunc)
+      template<Concept::TreeNode Tree, class TreePath, class PreFunc, class LeafFunc, class PostFunc>
+      void forEachNode(Tree&& tree, TreePath treePath, PreFunc&& preFunc, LeafFunc&& leafFunc, PostFunc&& postFunc)
       {
-        using Tree = std::decay_t<T>;
-
-        auto invoke = [&treePath,&tree]<class Callable>(Callable&& callable){
-          if constexpr (std::invocable<Callable&&, Tree&&, const TreePath&>)
-            callable(tree, std::as_const(treePath));
-          else
+        // To support callbacks not accepting a trailing tree path argument,
+        // this helper drops this argument if needed.
+        auto invoke = []<class Callable, class T>(Callable&& callable, T&& tree, const TreePath& treePath) {
+          static_assert(std::invocable<Callable&&, T&&, const TreePath&> || std::invocable<Callable&&, T&&>);
+          if constexpr (std::invocable<Callable&&, T&&, const TreePath&>)
+            callable(tree, treePath);
+          else if constexpr (std::invocable<Callable&&, T&&>)
             callable(tree);
         };
 
-        if constexpr(Concept::LeafTreeNode<Tree>) {
-          invoke(leafFunc);
+        if constexpr(Concept::LeafTreeNode<std::decay_t<Tree>>) {
+          invoke(leafFunc, tree, treePath);
         } else {
-
-          invoke(preFunc);
+          invoke(preFunc, tree, treePath);
           forEachChild(
             tree,
             [&]<class Child>(Child&& child, auto i) {
@@ -219,7 +221,7 @@ namespace Dune {
                 postFunc
               );
             });
-          invoke(postFunc);
+          invoke(postFunc, tree, treePath);
         }
       }
 
