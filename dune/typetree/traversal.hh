@@ -64,7 +64,7 @@ namespace Dune {
           callable(tree);
       };
 
-      if constexpr (Concept::UniformInnerTreeNode<std::decay_t<Tree>>)
+      if constexpr (Concept::UniformInnerTreeNode<Tree>)
         for (std::size_t i = 0; i != container.degree(); ++i)
           invoke(at_value, std::forward<Tree>(container).child(i), i);
       else
